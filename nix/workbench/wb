@@ -18,9 +18,11 @@ global_basedir=${global_basedir:-$(realpath "$(dirname "$0")")}
 . "$global_basedir"/scenario.sh
 . "$global_basedir"/analyse.sh
 . "$global_basedir"/explain-mode.sh
+. "$global_basedir"/app.sh
 
 . "$global_basedir"/backend.sh
 . "$global_basedir"/backend/supervisor.sh
+. "$global_basedir"/backend/docker.sh
 
 usage_main() {
     test $# -lt 1 ||
@@ -37,6 +39,8 @@ usage_main() {
     genesis      (g)      Genesis
     topology     (t)      Topology generation
     run          (r)      Managing cluster runs.  Default op is 'list'
+
+    app                   Multi-container (services) application
 
   Options:
 
@@ -88,7 +92,7 @@ start()
 {
     local batch_name=
     local profile_name= profile=
-    local backend=supervisor
+    local backend=${WB_BACKEND:-supervisor}
     local node_source=.
     local node_rev=
     local cabal_mode=
@@ -235,6 +239,9 @@ main() {
         backend )                 backend             "$@";;
         call )                                        "$@";;
         path )                    echo     $global_basedir;;
+
+        ## Docker's compose application (services) description.
+        app )                     app             "$@";;
 
         ## Bail for help:
         * ) usage_main "$op"; exit 1;; esac
