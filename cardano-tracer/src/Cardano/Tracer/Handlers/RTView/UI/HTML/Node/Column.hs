@@ -19,6 +19,7 @@ import           Cardano.Tracer.Environment
 import           Cardano.Tracer.Handlers.RTView.State.Errors
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.EKG
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Errors
+import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Logs
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Peers
 import           Cardano.Tracer.Handlers.RTView.UI.Img.Icons
 import           Cardano.Tracer.Handlers.RTView.UI.JS.Utils
@@ -54,6 +55,12 @@ addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer nodeId@(Node
                                   # set UI.enabled False
                                   # set text "Details"
   on UI.click peersDetailsButton . const $ fadeInModal peersTable
+
+  logsLiveView <- mkLogsLiveView id' nodeName
+  logsLiveViewButton <- UI.button ## (id' <> "__node-logs-live-view-button")
+                                  #. "button is-info"
+                                  # set text "Live view"
+  on UI.click logsLiveViewButton . const $ fadeInModal logsLiveView
 
   errorsTable <- mkErrorsTable tracerEnv nodeId nodesErrors updateErrorsTimer
   errorsDetailsButton <- UI.button ## (id' <> "__node-errors-details-button")
@@ -94,6 +101,17 @@ addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer nodeId@(Node
   addNodeCell "start-time" st
   addNodeCell "uptime" ut
   addNodeCell "logs" ls
+  addNodeCell "logs-access" [ UI.div #. "field is-grouped" #+
+                                [ UI.p #. "control" #+
+                                    [ element logsLiveViewButton
+                                    ]
+                                , UI.p #. "control" #+
+                                    [ 
+                                    ]
+                                ]
+                            , element logsLiveView
+                            ]
+
   --addNodeCell "chunk-validation" [ UI.span ## (id' <> "__node-chunk-validation")
   --                                         # set text "—"
   --                               ]
@@ -108,14 +126,14 @@ addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer nodeId@(Node
                           ]
                       , element peersTable
                       ]
-  addNodeCell "errors" [ UI.div #. "buttons has-addons" #+
-                           [ UI.button ## (id' <> "__node-errors-num")
-                                       #. "button is-static"
-                                       # set text "0"
-                           , element errorsDetailsButton
-                           ]
-                       , element errorsTable
-                       ]
+  --addNodeCell "errors" [ UI.div #. "buttons has-addons" #+
+  --                         [ UI.button ## (id' <> "__node-errors-num")
+  --                                     #. "button is-static"
+  --                                     # set text "0"
+  --                         , element errorsDetailsButton
+  --                         ]
+  --                     , element errorsTable
+  --                     ]
   addNodeCell "leadership" leadership
   addNodeCell "kes" kes
   addNodeCell "op-cert" opCert

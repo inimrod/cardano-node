@@ -187,7 +187,12 @@ mkPageBody tracerEnv networkConfig dsIxs = do
                               ]
                           , UI.tr ## "node-logs-row" #+
                               [ UI.td #+ [ image "rt-view-overview-icon" logsSVG
-                                         , string "Logs"
+                                         , string "Logs paths"
+                                         ]
+                              ]
+                          , UI.tr ## "node-logs-access-row" #+
+                              [ UI.td #+ [ image "rt-view-overview-icon" logsAccessSVG
+                                         , string "Logs access"
                                          ]
                               ]
                           --, UI.tr ## "node-chunk-validation-row" #+
@@ -205,11 +210,11 @@ mkPageBody tracerEnv networkConfig dsIxs = do
                                          , string "Peers"
                                          ]
                               ]
-                          , UI.tr ## "node-errors-row" #+
-                              [ UI.td #+ [ image "rt-view-overview-icon" errorsSVG
-                                         , string "Errors"
-                                         ]
-                              ]
+                          --, UI.tr ## "node-errors-row" #+
+                          --    [ UI.td #+ [ image "rt-view-overview-icon" errorsSVG
+                          --               , string "Errors"
+                          --               ]
+                          --    ]
                           , UI.tr ## "node-leadership-row" #+
                               [ UI.td #+ [ image "rt-view-overview-icon" firstSVG
                                          , string "Leadership"

@@ -64,6 +64,7 @@ library
                        Cardano.Tracer.Handlers.RTView.State.Errors
                        Cardano.Tracer.Handlers.RTView.State.Historical
                        Cardano.Tracer.Handlers.RTView.State.Last
+                       Cardano.Tracer.Handlers.RTView.State.Logs
                        Cardano.Tracer.Handlers.RTView.State.Peers
                        Cardano.Tracer.Handlers.RTView.State.TraceObjects
 
@@ -74,6 +75,7 @@ library
                        Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Column
                        Cardano.Tracer.Handlers.RTView.UI.HTML.Node.EKG
                        Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Errors
+                       Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Logs
                        Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Peers
                        Cardano.Tracer.Handlers.RTView.UI.HTML.About
                        Cardano.Tracer.Handlers.RTView.UI.HTML.Body
@@ -97,6 +99,7 @@ library
                        Cardano.Tracer.Handlers.RTView.Update.Historical
                        Cardano.Tracer.Handlers.RTView.Update.KES
                        Cardano.Tracer.Handlers.RTView.Update.Leadership
+                       Cardano.Tracer.Handlers.RTView.Update.Logs
                        Cardano.Tracer.Handlers.RTView.Update.NodeInfo
                        Cardano.Tracer.Handlers.RTView.Update.NodeState
                        Cardano.Tracer.Handlers.RTView.Update.Nodes
