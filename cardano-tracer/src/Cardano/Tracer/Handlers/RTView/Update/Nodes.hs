@@ -39,12 +39,14 @@ import           Cardano.Tracer.Handlers.Metrics.Utils
 import           Cardano.Tracer.Handlers.RTView.State.Displayed
 import           Cardano.Tracer.Handlers.RTView.State.EraSettings
 import           Cardano.Tracer.Handlers.RTView.State.Errors
+import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.State.TraceObjects
 import           Cardano.Tracer.Handlers.RTView.UI.Charts
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Column
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.NoNodes
 import           Cardano.Tracer.Handlers.RTView.UI.Types
 import           Cardano.Tracer.Handlers.RTView.UI.Utils
+import           Cardano.Tracer.Handlers.RTView.Update.Logs
 import           Cardano.Tracer.Handlers.RTView.Update.NodeInfo
 import           Cardano.Tracer.Handlers.RTView.Update.Utils
 import           Cardano.Tracer.Handlers.RTView.Utils
@@ -61,10 +63,12 @@ updateNodesUI
   -> Errors
   -> UI.Timer
   -> UI.Timer
+  -> LiveViewTimers
+  -> LastLiveViewItems
   -> UI ()
 updateNodesUI tracerEnv@TracerEnv{teConnectedNodes, teAcceptedMetrics, teSavedTO}
-              displayedElements nodesEraSettings loggingConfig colors
-              datasetIndices nodesErrors updateErrorsTimer noNodesProgressTimer = do
+              displayedElements nodesEraSettings loggingConfig colors datasetIndices
+              nodesErrors updateErrorsTimer noNodesProgressTimer lvTimers llvItems = do
   (connected, displayedEls) <- liftIO . atomically $ (,)
     <$> readTVar teConnectedNodes
     <*> readTVar displayedElements
@@ -80,10 +84,13 @@ updateNodesUI tracerEnv@TracerEnv{teConnectedNodes, teAcceptedMetrics, teSavedTO
       loggingConfig
       nodesErrors
       updateErrorsTimer
+      lvTimers
     checkNoNodesState connected noNodesProgressTimer
     askNSetNodeInfo tracerEnv newlyConnected displayedElements
     addDatasetsForConnected tracerEnv newlyConnected colors datasetIndices
     restoreLastHistoryOnCharts tracerEnv datasetIndices newlyConnected
+    addLiveViewTimers tracerEnv lvTimers llvItems newlyConnected
+    deleteLiveViewTimers lvTimers llvItems disconnected
     liftIO $
       updateDisplayedElements displayedElements connected
   setBlockReplayProgress connected teAcceptedMetrics
@@ -99,8 +106,9 @@ addColumnsForConnected
   -> NonEmpty LoggingParams
   -> Errors
   -> UI.Timer
+  -> LiveViewTimers
   -> UI ()
-addColumnsForConnected tracerEnv newlyConnected loggingConfig nodesErrors updateErrorsTimer = do
+addColumnsForConnected tracerEnv newlyConnected loggingConfig nodesErrors updateErrorsTimer lvTimers = do
   unless (S.null newlyConnected) $ do
     window <- askWindow
     findAndShow window "main-table-container"
@@ -110,6 +118,7 @@ addColumnsForConnected tracerEnv newlyConnected loggingConfig nodesErrors update
       loggingConfig
       nodesErrors
       updateErrorsTimer
+      lvTimers
 
 addDatasetsForConnected
   :: TracerEnv
@@ -137,6 +146,30 @@ deleteColumnsForDisconnected connected disconnected = do
   -- Please note that we don't remove historical data from charts
   -- for disconnected node. Because the user may want to see the
   -- historical data even for the node that already disconnected.
+
+addLiveViewTimers
+  :: TracerEnv
+  -> LiveViewTimers
+  -> LastLiveViewItems
+  -> Set NodeId
+  -> UI ()
+addLiveViewTimers tracerEnv lvTimers llvItems newlyConnected =
+  forM_ newlyConnected $ \nodeId -> do
+    timer <- UI.timer # set UI.interval 1000
+    on UI.tick timer . const $ updateLogsLiveView tracerEnv llvItems nodeId
+    addLiveViewTimer lvTimers nodeId timer
+
+deleteLiveViewTimers
+  :: LiveViewTimers
+  -> LastLiveViewItems
+  -> Set NodeId
+  -> UI ()
+deleteLiveViewTimers lvTimers llvItems disconnected =
+  forM_ disconnected $ \nodeId -> do
+    stopLiveViewTimer lvTimers nodeId
+    liftIO . atomically $ do
+      modifyTVar' lvTimers $ M.delete nodeId
+      modifyTVar' llvItems $ M.delete nodeId
 
 checkNoNodesState
   :: Set NodeId

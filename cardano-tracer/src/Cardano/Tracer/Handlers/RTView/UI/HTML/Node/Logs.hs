@@ -9,14 +9,17 @@ import           Data.Text (unpack)
 import qualified Graphics.UI.Threepenny as UI
 import           Graphics.UI.Threepenny.Core
 
+import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.UI.Utils
 import           Cardano.Tracer.Types
 
 mkLogsLiveView
-  :: String
+  :: LiveViewTimers
+  -> NodeId
   -> NodeName
   -> UI Element
-mkLogsLiveView id' nodeName = do
+mkLogsLiveView lvTimers nodeId@(NodeId anId) nodeName = do
+  let id' = unpack anId
   _window <- askWindow
   closeIt <- UI.button #. "delete"
 
@@ -63,5 +66,8 @@ mkLogsLiveView id' nodeName = do
               ]
           ]
       ]
-  on UI.click closeIt . const $ element logsLiveViewTable #. "modal"
+  on UI.click closeIt . const $ do
+    stopLiveViewTimer lvTimers nodeId
+    element logsLiveViewTable #. "modal"
+
   return logsLiveViewTable

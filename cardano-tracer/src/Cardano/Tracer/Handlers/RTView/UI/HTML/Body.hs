@@ -25,7 +25,7 @@ import           Cardano.Tracer.Handlers.RTView.UI.HTML.Notifications
 import           Cardano.Tracer.Handlers.RTView.UI.Img.Icons
 import           Cardano.Tracer.Handlers.RTView.UI.JS.ChartJS
 import qualified Cardano.Tracer.Handlers.RTView.UI.JS.Charts as Chart
-import           Cardano.Tracer.Handlers.RTView.UI.JS.Utils
+--import           Cardano.Tracer.Handlers.RTView.UI.JS.Utils
 import           Cardano.Tracer.Handlers.RTView.UI.Notifications
 import           Cardano.Tracer.Handlers.RTView.UI.Theme
 import           Cardano.Tracer.Handlers.RTView.UI.Types
@@ -333,7 +333,7 @@ mkPageBody tracerEnv networkConfig dsIxs = do
       , UI.mkElement "script" # set UI.html chartJSPluginZoom
       ]
 
-  closeModalsByEscapeButton
+  -- closeModalsByEscapeButton
 
   Chart.prepareChartsJS
 

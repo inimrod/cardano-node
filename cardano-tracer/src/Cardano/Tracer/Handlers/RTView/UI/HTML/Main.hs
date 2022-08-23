@@ -18,6 +18,7 @@ import           Cardano.Tracer.Environment
 import           Cardano.Tracer.Handlers.RTView.State.Displayed
 import           Cardano.Tracer.Handlers.RTView.State.EraSettings
 import           Cardano.Tracer.Handlers.RTView.State.Errors
+import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.State.Peers
 import           Cardano.Tracer.Handlers.RTView.UI.Charts
 import           Cardano.Tracer.Handlers.RTView.UI.CSS.Bulma
@@ -44,10 +45,12 @@ mkMainPage
   -> NonEmpty LoggingParams
   -> Network
   -> Errors
+  -> LastLiveViewItems
+  -> LiveViewTimers
   -> UI.Window
   -> UI ()
 mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
-           loggingConfig networkConfig nodesErrors window = do
+           loggingConfig networkConfig nodesErrors llvItems lvTimers window = do
   void $ return window # set UI.title pageTitle
   void $ UI.getHead window #+
     [ UI.link # set UI.rel "icon"
@@ -104,13 +107,14 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
 
     updateUIAfterReload
       tracerEnv
-      displayedElements 
+      displayedElements
       loggingConfig
       colors
       datasetIndices
       nodesErrors
       uiErrorsTimer
       uiNoNodesProgressTimer
+      lvTimers
 
     liftIO $ pageWasNotReload reloadFlag
 
@@ -124,7 +128,7 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
     updateEKGMetrics tracerEnv
 
   uiNodesTimer <- UI.timer # set UI.interval 1000
-  on UI.tick uiNodesTimer . const $
+  on UI.tick uiNodesTimer . const $ do
     updateNodesUI
       tracerEnv
       displayedElements
@@ -135,6 +139,8 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
       nodesErrors
       uiErrorsTimer
       uiNoNodesProgressTimer
+      lvTimers
+      llvItems
 
   uiPeersTimer <- UI.timer # set UI.interval 4000
   on UI.tick uiPeersTimer . const $ do

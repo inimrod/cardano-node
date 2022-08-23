@@ -17,6 +17,7 @@ import           System.FilePath ((</>))
 import           Cardano.Tracer.Configuration
 import           Cardano.Tracer.Environment
 import           Cardano.Tracer.Handlers.RTView.State.Errors
+import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.EKG
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Errors
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Logs
@@ -33,9 +34,10 @@ addNodeColumn
   -> NonEmpty LoggingParams
   -> Errors
   -> UI.Timer
+  -> LiveViewTimers
   -> NodeId
   -> UI ()
-addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer nodeId@(NodeId anId) = do
+addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer lvTimers nodeId@(NodeId anId) = do
   nodeName <- liftIO $ askNodeName tracerEnv nodeId
 
   let id' = unpack anId
@@ -56,11 +58,13 @@ addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer nodeId@(Node
                                   # set text "Details"
   on UI.click peersDetailsButton . const $ fadeInModal peersTable
 
-  logsLiveView <- mkLogsLiveView id' nodeName
+  logsLiveView <- mkLogsLiveView lvTimers nodeId nodeName
   logsLiveViewButton <- UI.button ## (id' <> "__node-logs-live-view-button")
                                   #. "button is-info"
                                   # set text "Live view"
-  on UI.click logsLiveViewButton . const $ fadeInModal logsLiveView
+  on UI.click logsLiveViewButton . const $ do
+    startLiveViewTimer lvTimers nodeId
+    fadeInModal logsLiveView
 
   errorsTable <- mkErrorsTable tracerEnv nodeId nodesErrors updateErrorsTimer
   errorsDetailsButton <- UI.button ## (id' <> "__node-errors-details-button")

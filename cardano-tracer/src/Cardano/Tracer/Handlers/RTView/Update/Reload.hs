@@ -14,6 +14,7 @@ import           Cardano.Tracer.Configuration
 import           Cardano.Tracer.Environment
 import           Cardano.Tracer.Handlers.RTView.State.Displayed
 import           Cardano.Tracer.Handlers.RTView.State.Errors
+import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.UI.Charts
 import           Cardano.Tracer.Handlers.RTView.UI.Types
 import           Cardano.Tracer.Handlers.RTView.Update.NodeInfo
@@ -28,9 +29,10 @@ updateUIAfterReload
   -> Errors
   -> UI.Timer
   -> UI.Timer
+  -> LiveViewTimers
   -> UI ()
 updateUIAfterReload tracerEnv displayedElements loggingConfig colors datasetIndices
-                    nodesErrors updateErrorsTimer noNodesProgressTimer = do
+                    nodesErrors updateErrorsTimer noNodesProgressTimer lvTimers = do
   -- Ok, web-page was reload (i.e. it's the first update after DOM-rendering),
   -- so displayed state should be restored immediately.
   connected <- liftIO $ readTVarIO (teConnectedNodes tracerEnv)
@@ -40,6 +42,7 @@ updateUIAfterReload tracerEnv displayedElements loggingConfig colors datasetIndi
     loggingConfig
     nodesErrors
     updateErrorsTimer
+    lvTimers
   checkNoNodesState connected noNodesProgressTimer
   askNSetNodeInfo tracerEnv connected displayedElements
   addDatasetsForConnected tracerEnv connected colors datasetIndices
