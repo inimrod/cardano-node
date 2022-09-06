@@ -268,10 +268,10 @@ beForgedAt BlockEvents{beForge=BlockForge{..}} =
 buildMachViews :: Run -> [(JsonLogfile, [LogObject])] -> IO [(JsonLogfile, MachView)]
 buildMachViews run = mapConcurrentlyPure (fst &&& blockEventMapsFromLogObjects run)
 
-rebuildChain :: Run -> ([ChainFilter], [FilterName]) -> [(JsonLogfile, MachView)] -> IO (DataDomain SlotNo, DataDomain BlockNo, [FilterName], [BlockEvents])
-rebuildChain run@Run{genesis} (flts, fltNames) xs@(fmap snd -> machViews) = do
+rebuildChain :: Run -> [ChainFilter] -> [FilterName] -> [(JsonLogfile, MachView)] -> IO (DataDomain SlotNo, DataDomain BlockNo, [BlockEvents])
+rebuildChain run@Run{genesis} flts fltNames xs@(fmap snd -> machViews) = do
   progress "tip" $ Q $ show $ bfeBlock tipBlock
-  pure (domSlot, domBlock, fltNames, chain)
+  pure (domSlot, domBlock, chain)
  where
    (blk0,  blkL)  = (head chain, last chain)
    mblkV =

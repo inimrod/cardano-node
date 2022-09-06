@@ -84,7 +84,8 @@ parseChainCommand =
    , op "rebuild-chain" "Rebuild chain"
      (RebuildChain
        <$> many
-       (argChainFilterset  "filter"          "JSON list of block/slot selection criteria"))
+       (argChainFilterset  "filter"          "JSON list of block/slot selection criteria")
+       <*> many argChainFilterExpr)
    , op "read-chain" "Read reconstructed chain"
      (ReadChain
        <$> optJsonInputFile  "chain"         "Block event stream (JSON)")
@@ -107,7 +108,8 @@ parseChainCommand =
    , op "filter-slots" "Filter per-slot performance stats"
      (FilterSlots
        <$> many
-       (argChainFilterset  "filter"          "JSON list of slot selection criteria"))
+       (argChainFilterset  "filter"          "JSON list of slot selection criteria")
+       <*> many argChainFilterExpr)
    , op "dump-slots" "Dump filtered slot stats stream, alongside input files"
      (DumpSlots & pure)
    , op "timeline-slots" "Render machine slot timelines, alongside input files"
@@ -233,14 +235,14 @@ data ChainCommand
   |         DumpMachViews
   |         ReadMachViews   [JsonLogfile]
 
-  |         RebuildChain    [JsonFilterFile]
+  |         RebuildChain    [JsonFilterFile] [ChainFilter]
   |            DumpChain    (JsonOutputFile [BlockEvents])
   |            ReadChain    (JsonInputFile [BlockEvents])
   |        TimelineChain    TextOutputFile [RTComments BlockEvents]
 
   |         CollectSlots    [JsonLogfile]
   |            DumpSlotsRaw
-  |          FilterSlots    [JsonFilterFile]
+  |          FilterSlots    [JsonFilterFile] [ChainFilter]
   |            DumpSlots
   |        TimelineSlots
 
@@ -352,10 +354,13 @@ runChainCommand s c@(ReadMachViews fs) = do
   pure s { sMachViews = Just machViews }
 
 runChainCommand s@State{sRun=Just run, sMachViews=Just mvs}
-  c@(RebuildChain fltfs) = do
-  flts <- readFilters fltfs
+  c@(RebuildChain fltfs fltExprs) = do
+  (flts,
+   (<> [ FilterName "inline-expr" | not (null fltExprs)])
+    -> fltNames) <- readFilters fltfs
           & firstExceptT (CommandError c)
-  (domSlot, domBlock, fltNames, chain) <- rebuildChain run flts mvs & liftIO
+  (domSlot, domBlock, chain) <- rebuildChain run (flts <> fltExprs) fltNames mvs
+                                & liftIO
   pure s { sChain = Just chain
          , sDomSlots = Just domSlot
          , sDomBlocks = Just domBlock
@@ -411,16 +416,20 @@ runChainCommand _ c@DumpSlotsRaw = missingCommandData c
   ["unfiltered slots"]
 
 runChainCommand s@State{sRun=Just run, sSlotsRaw=Just slotsRaw}
-  c@(FilterSlots fltfs) = do
-  flts <- readFilters fltfs
-          & firstExceptT (CommandError c)
-  (domSlots, fltrd) <- runSlotFilters run flts slotsRaw
+  c@(FilterSlots fltfs fltExprs) = do
+  (flts,
+    (<> [ FilterName "inline-expr" | not (null fltExprs)])
+    -> fltNames) <- readFilters fltfs & firstExceptT (CommandError c)
+  (domSlots, fltrd) <- runSlotFilters run (flts <> fltExprs) slotsRaw
                        & liftIO
                        & firstExceptT (CommandError c)
   when (maximum (length . snd <$> fltrd) == 0) $
     throwE $ CommandError c $ mconcat
       [ "All ", show $ maximum (length . snd <$> slotsRaw), " slots filtered out." ]
-  pure s { sSlots = Just fltrd, sDomSlots = Just domSlots }
+  pure s { sSlots = Just fltrd
+         , sDomSlots = Just domSlots
+         , sFilters = fltNames
+         }
 runChainCommand _ c@FilterSlots{} = missingCommandData c
   ["run metadata & genesis", "unfiltered slot stats"]
 
