@@ -6,6 +6,7 @@
 
 module Cardano.Tracer.Handlers.RTView.Update.Logs
   ( updateLogsLiveView
+  , updateLogsLiveView'
   , deleteAllErrorMessages
   ) where
 
@@ -28,13 +29,20 @@ import           Cardano.Tracer.Handlers.RTView.UI.JS.Utils
 import           Cardano.Tracer.Handlers.RTView.UI.Utils
 import           Cardano.Tracer.Types
 
--- | Update log items in a corresponding modal window.
 updateLogsLiveView
   :: TracerEnv
   -> LastLiveViewItems
   -> NodeId
   -> UI ()
-updateLogsLiveView TracerEnv{teSavedTO} llvItems nodeId@(NodeId anId) = do
+updateLogsLiveView _ _ _ = return ()
+
+-- | Update log items in a corresponding modal window.
+updateLogsLiveView'
+  :: TracerEnv
+  -> LastLiveViewItems
+  -> NodeId
+  -> UI ()
+updateLogsLiveView' TracerEnv{teSavedTO} llvItems nodeId@(NodeId anId) = do
   savedTO <- liftIO $ readTVarIO teSavedTO
   whenJust (M.lookup nodeId savedTO) $ \savedTOForNode ->
     forM_ (M.toList savedTOForNode) $ \(ns, trObInfo@(msg, severity, ts)) ->
