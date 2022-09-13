@@ -34,7 +34,7 @@ traceObjectsHandler tracerEnv nodeId traceObjects = do
         FileMode    -> writeTraceObjectsToFile nodeName teCurrentLogLock logRoot logFormat traceObjects
         JournalMode -> writeTraceObjectsToJournal nodeName traceObjects
   whenJust hasRTView . const $
-    saveTraceObjects teSavedTO nodeId traceObjects
+    saveTraceObjects2 teSavedTO2 nodeId traceObjects
  where
-  TracerEnv{teConfig, teCurrentLogLock, teSavedTO} = tracerEnv
+  TracerEnv{teConfig, teCurrentLogLock, teSavedTO2} = tracerEnv
   TracerConfig{logging, verbosity, hasRTView} = teConfig

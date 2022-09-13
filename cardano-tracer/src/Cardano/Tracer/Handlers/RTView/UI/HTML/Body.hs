@@ -195,16 +195,6 @@ mkPageBody tracerEnv networkConfig dsIxs = do
                                          , string "Logs access"
                                          ]
                               ]
-                          --, UI.tr ## "node-chunk-validation-row" #+
-                          --    [ UI.td #+ [ image "rt-view-overview-icon" dbSVG
-                          --               , string "Chunk validation"
-                          --               ]
-                          --    ]
-                          --, UI.tr ## "node-update-ledger-db-row" #+
-                          --    [ UI.td #+ [ image "rt-view-overview-icon" dbSVG
-                          --               , string "Ledger DB"
-                          --               ]
-                          --    ]
                           , UI.tr ## "node-peers-row" #+
                               [ UI.td #+ [ image "rt-view-overview-icon" peersSVG
                                          , string "Peers"

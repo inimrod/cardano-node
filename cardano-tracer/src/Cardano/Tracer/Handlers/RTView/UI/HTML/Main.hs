@@ -35,6 +35,7 @@ import           Cardano.Tracer.Handlers.RTView.Update.Nodes
 import           Cardano.Tracer.Handlers.RTView.Update.NodeState
 import           Cardano.Tracer.Handlers.RTView.Update.Peers
 import           Cardano.Tracer.Handlers.RTView.Update.Reload
+import           Cardano.Tracer.Handlers.RTView.Update.TraceObjects
 import           Cardano.Tracer.Handlers.RTView.Update.Utils
 
 mkMainPage
@@ -118,6 +119,10 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
 
     liftIO $ pageWasNotReload reloadFlag
 
+  uiSavedTOTimer <- UI.timer # set UI.interval 1000
+  on UI.tick uiSavedTOTimer . const $
+    updateUIBySavedTOs tracerEnv displayedElements
+
   -- Uptime is a real-time clock, so update it every second.
   uiUptimeTimer <- UI.timer # set UI.interval 1000
   on UI.tick uiUptimeTimer . const $
@@ -148,6 +153,7 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
     updateNodesPeers tracerEnv peers
     updateKESInfo tracerEnv nodesEraSettings displayedElements
 
+  UI.start uiSavedTOTimer
   UI.start uiUptimeTimer
   UI.start uiNodesTimer
   UI.start uiPeersTimer
@@ -158,6 +164,7 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
   on UI.disconnect window . const $ do
     webPageIsClosed tracerEnv
     UI.stop uiNodesTimer
+    UI.stop uiSavedTOTimer
     UI.stop uiUptimeTimer
     UI.stop uiPeersTimer
     UI.stop uiEKGTimer

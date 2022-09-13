@@ -41,7 +41,8 @@ doRunCardanoTracer config protocolsBrake dpRequestors = do
   connectedNodes      <- initConnectedNodes
   connectedNodesNames <- initConnectedNodesNames
   acceptedMetrics <- initAcceptedMetrics
-  savedTO         <- initSavedTraceObjects
+  savedTO  <- initSavedTraceObjects
+  savedTO2 <- initSavedTraceObjects2
 
   chainHistory     <- initBlockchainHistory
   resourcesHistory <- initResourcesHistory
@@ -61,6 +62,7 @@ doRunCardanoTracer config protocolsBrake dpRequestors = do
           , teConnectedNodesNames = connectedNodesNames
           , teAcceptedMetrics     = acceptedMetrics
           , teSavedTO             = savedTO
+          , teSavedTO2            = savedTO2
           , teBlockchainHistory   = chainHistory
           , teResourcesHistory    = resourcesHistory
           , teTxHistory           = txHistory

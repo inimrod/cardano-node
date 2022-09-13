@@ -106,6 +106,7 @@ library
                        Cardano.Tracer.Handlers.RTView.Update.Peers
                        Cardano.Tracer.Handlers.RTView.Update.Reload
                        Cardano.Tracer.Handlers.RTView.Update.Resources
+                       Cardano.Tracer.Handlers.RTView.Update.TraceObjects
                        Cardano.Tracer.Handlers.RTView.Update.Transactions
                        Cardano.Tracer.Handlers.RTView.Update.Utils
 

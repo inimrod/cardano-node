@@ -18,6 +18,7 @@ data TracerEnv = TracerEnv
   , teConnectedNodesNames :: !ConnectedNodesNames
   , teAcceptedMetrics     :: !AcceptedMetrics
   , teSavedTO             :: !SavedTraceObjects
+  , teSavedTO2            :: !SavedTraceObjects2
   , teBlockchainHistory   :: !BlockchainHistory
   , teResourcesHistory    :: !ResourcesHistory
   , teTxHistory           :: !TransactionsHistory

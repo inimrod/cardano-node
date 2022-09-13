@@ -51,7 +51,7 @@ getLastLiveViewItem llvItems nodeId =
   M.lookup nodeId <$> readTVarIO llvItems
 
 -- | Timers for live view windows: only when the user opened it,
---   the items will be updated in a real-time.
+--   the items will be shown (and updated in a real-time).
 type LiveViewTimers = TVar (Map NodeId UI.Timer)
 
 initLiveViewTimers :: IO LiveViewTimers
