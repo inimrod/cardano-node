@@ -971,13 +971,23 @@ makeTransactionBodyAutoBalance eraInMode systemstart history pparams
     -- output and fee. Yes this means this current code will only work for
     -- final fee of less than around 4000 ada (2^32-1 lovelace) and change output
     -- of less than around 18 trillion ada  (2^64-1 lovelace).
+    -- However, since at this point we know how much non-Ada change to give
+    -- we can use the true values for that.
+
+    let outgoingNonAda = mconcat [filterValue isNotAda v | (TxOut _ (TxOutValue _ v) _ _) <- txOuts txbodycontent]
+    let incomingNonAda = mconcat [filterValue isNotAda v | (TxOut _ (TxOutValue _ v) _ _) <- Map.elems $ unUTxO utxo]
+    let nonAdaChange = incomingNonAda <> negateValue outgoingNonAda
+
+    let changeTxOut = case multiAssetSupportedInEra cardanoEra of
+          Left _ -> lovelaceToTxOutValue $ Lovelace (2^(64 :: Integer)) - 1
+          Right multiAsset -> TxOutValue multiAsset (lovelaceToValue (Lovelace (2^(64 :: Integer)) - 1) <> nonAdaChange)
 
     let (dummyCollRet, dummyTotColl) = maybeDummyTotalCollAndCollReturnOutput txbodycontent changeaddr
     txbody1 <- first TxBodyError $ -- TODO: impossible to fail now
                makeTransactionBody txbodycontent1 {
                  txFee  = TxFeeExplicit explicitTxFees $ Lovelace (2^(32 :: Integer) - 1),
                  txOuts = TxOut changeaddr
-                                (lovelaceToTxOutValue $ Lovelace (2^(64 :: Integer)) - 1)
+                                changeTxOut
                                 TxOutDatumNone ReferenceScriptNone
                         : txOuts txbodycontent,
                  txReturnCollateral = dummyCollRet,
@@ -1009,13 +1019,7 @@ makeTransactionBodyAutoBalance eraInMode systemstart history pparams
 
     -- check if the balance is positive or negative
     -- in one case we can produce change, in the other the inputs are insufficient
-    case balance of
-      TxOutAdaOnly _ _ -> balanceCheck balance
-      TxOutValue _ v   ->
-        case valueToLovelace v of
-          Nothing -> Left $ TxBodyErrorNonAdaAssetsUnbalanced v
-          Just _ -> balanceCheck balance
-
+    balanceCheck balance
 
     --TODO: we could add the extra fee for the CBOR encoding of the change,
     -- now that we know the magnitude of the change: i.e. 1-8 bytes extra.
@@ -1135,7 +1139,7 @@ makeTransactionBodyAutoBalance eraInMode systemstart history pparams
 
    balanceCheck :: TxOutValue era -> Either TxBodyErrorAutoBalance ()
    balanceCheck balance
-    | txOutValueToLovelace balance == 0 = return ()
+    | txOutValueToLovelace balance == 0 && onlyAda (txOutValueToValue balance) = return ()
     | txOutValueToLovelace balance < 0 =
         Left . TxBodyErrorAdaBalanceNegative $ txOutValueToLovelace balance
     | otherwise =
@@ -1144,6 +1148,13 @@ makeTransactionBodyAutoBalance eraInMode systemstart history pparams
             Left $ TxBodyErrorAdaBalanceTooSmall txOutAny minUTxO (txOutValueToLovelace balance)
           Left err -> Left err
           Right _ -> Right ()
+
+   isNotAda :: AssetId -> Bool
+   isNotAda AdaAssetId = False
+   isNotAda _ = True
+
+   onlyAda :: Value -> Bool
+   onlyAda = null . valueToList . filterValue isNotAda
 
    checkMinUTxOValue
      :: TxOut CtxTx era
