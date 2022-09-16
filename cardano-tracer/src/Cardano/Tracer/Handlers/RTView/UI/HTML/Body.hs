@@ -20,6 +20,7 @@ import           Cardano.Tracer.Environment
 import           Cardano.Tracer.Handlers.RTView.State.Historical
 import           Cardano.Tracer.Handlers.RTView.UI.Charts
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.About
+import           Cardano.Tracer.Handlers.RTView.UI.HTML.Logs
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.NoNodes
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Notifications
 import           Cardano.Tracer.Handlers.RTView.UI.Img.Icons
@@ -125,6 +126,13 @@ mkPageBody tracerEnv networkConfig dsIxs = do
   on UI.click showHideResources . const $
     changeVisibilityForCharts showHideResources "resources-charts" "Resources"
 
+  logsLiveView <- mkLogsLiveView
+  logsLiveViewButton <- UI.button ## "logs-live-view-button"
+                                  #. "button is-info"
+                                  # set text "Live view"
+  on UI.click logsLiveViewButton . const $
+    fadeInModal logsLiveView
+
   -- Body.
   window <- askWindow
   body <-
@@ -190,21 +198,11 @@ mkPageBody tracerEnv networkConfig dsIxs = do
                                          , string "Logs paths"
                                          ]
                               ]
-                          , UI.tr ## "node-logs-access-row" #+
-                              [ UI.td #+ [ image "rt-view-overview-icon" logsAccessSVG
-                                         , string "Logs access"
-                                         ]
-                              ]
                           , UI.tr ## "node-peers-row" #+
                               [ UI.td #+ [ image "rt-view-overview-icon" peersSVG
                                          , string "Peers"
                                          ]
                               ]
-                          --, UI.tr ## "node-errors-row" #+
-                          --    [ UI.td #+ [ image "rt-view-overview-icon" errorsSVG
-                          --               , string "Errors"
-                          --               ]
-                          --    ]
                           , UI.tr ## "node-leadership-row" #+
                               [ UI.td #+ [ image "rt-view-overview-icon" firstSVG
                                          , string "Leadership"
@@ -230,6 +228,10 @@ mkPageBody tracerEnv networkConfig dsIxs = do
                               ]
                           ]
                       ]
+                  ]
+              , UI.div #. "" #+
+                  [ element logsLiveView
+                  , element logsLiveViewButton
                   ]
               ]
           , UI.mkElement "section" #. "section" #+

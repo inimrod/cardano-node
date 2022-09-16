@@ -1,26 +1,17 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Logs
+module Cardano.Tracer.Handlers.RTView.UI.HTML.Logs
   ( mkLogsLiveView
   ) where
 
-import           Data.Text (unpack)
 import qualified Graphics.UI.Threepenny as UI
 import           Graphics.UI.Threepenny.Core
 
-import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.UI.Utils
-import           Cardano.Tracer.Types
 
-mkLogsLiveView
-  :: LiveViewTimers
-  -> NodeId
-  -> NodeName
-  -> UI Element
-mkLogsLiveView lvTimers nodeId@(NodeId anId) nodeName = do
-  let id' = unpack anId
-  _window <- askWindow
+mkLogsLiveView :: UI Element
+mkLogsLiveView = do
   closeIt <- UI.button #. "delete"
 
   logsLiveViewTable <-
@@ -29,19 +20,19 @@ mkLogsLiveView lvTimers nodeId@(NodeId anId) nodeName = do
       , UI.div #. "modal-card rt-view-logs-live-view-modal" #+
           [ UI.header #. "modal-card-head rt-view-logs-live-view-head" #+
               [ UI.p #. "modal-card-title rt-view-logs-live-view-title" #+
-                  [ string "Log items from "
-                  , UI.span ## (id' <> "__node-name-for-logs-live-view")
-                            #. "has-text-weight-bold"
-                            # set text (unpack nodeName)
+                  [ string "Log items from connected nodes"
                   ]
               , element closeIt
               ]
           , UI.mkElement "section" #. "modal-card-body rt-view-logs-live-view-body" #+
-              [ UI.div ## (id' <> "__logs-live-view-table-container") #. "table-container" #+
-                  [ UI.table ## (id' <> "__logs-live-view-table") #. "table is-fullwidth rt-view-logs-live-view-table" #+
+              [ UI.div ## "logs-live-view-table-container" #. "table-container" #+
+                  [ UI.table ## "logs-live-view-table" #. "table is-fullwidth rt-view-logs-live-view-table" #+
                       [ UI.mkElement "thead" #+
                           [ UI.tr #+
-                              [ UI.th #. "rt-view-logs-live-view-timestamp" #+
+                              [ UI.th #. "rt-view-logs-live-view-node" #+
+                                  [ string "Node"
+                                  ]
+                              , UI.th #. "rt-view-logs-live-view-timestamp" #+
                                   [ string "Timestamp"
                                   ]
                               , UI.th #. "rt-view-logs-live-view-severity" #+
@@ -55,7 +46,7 @@ mkLogsLiveView lvTimers nodeId@(NodeId anId) nodeName = do
                                   ]
                               ]
                           ]
-                      , UI.mkElement "tbody" ## (id' <> "__node-logs-live-view-tbody")
+                      , UI.mkElement "tbody" ## "node-logs-live-view-tbody"
                                              # set dataState "0"
                                              #+ []
                       ]
@@ -66,8 +57,7 @@ mkLogsLiveView lvTimers nodeId@(NodeId anId) nodeName = do
               ]
           ]
       ]
-  on UI.click closeIt . const $ do
-    stopLiveViewTimer lvTimers nodeId
+  on UI.click closeIt . const $
     element logsLiveViewTable #. "modal"
 
   return logsLiveViewTable

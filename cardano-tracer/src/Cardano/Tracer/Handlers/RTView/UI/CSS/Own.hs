@@ -112,7 +112,7 @@ span[data-tooltip] {
 }
 
 .rt-view-logs-live-view-modal {
-  width: 65%;
+  width: 85%;
   min-height: 65%;
 }
 
@@ -136,7 +136,7 @@ span[data-tooltip] {
   }
 
   .rt-view-logs-live-view-modal {
-    width: 70%;
+    width: 80%;
   }
 
   .rt-view-errors-modal {
@@ -154,7 +154,7 @@ span[data-tooltip] {
   }
 
   .rt-view-logs-live-view-modal {
-    width: 75%;
+    width: 85%;
   }
 
   .rt-view-errors-modal {
@@ -178,7 +178,7 @@ span[data-tooltip] {
   }
 
   .rt-view-logs-live-view-modal {
-    width: 85%;
+    width: 95%;
   }
 
   .rt-view-errors-modal {
@@ -201,16 +201,20 @@ span[data-tooltip] {
   max-width: 380px;
 }
 
+.rt-view-logs-live-view-node {
+  width: 13%;
+}
+
 .rt-view-logs-live-view-timestamp {
-  width: 30%;
+  width: 18%;
 }
 
 .rt-view-logs-live-view-severity {
-  width: 16%;
+  width: 11%;
 }
 
 .rt-view-logs-live-view-namespace {
-  width: 26%;
+  width: 20%;
 }
 
 .rt-view-errors-timestamp {

@@ -75,10 +75,10 @@ library
                        Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Column
                        Cardano.Tracer.Handlers.RTView.UI.HTML.Node.EKG
                        Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Errors
-                       Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Logs
                        Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Peers
                        Cardano.Tracer.Handlers.RTView.UI.HTML.About
                        Cardano.Tracer.Handlers.RTView.UI.HTML.Body
+                       Cardano.Tracer.Handlers.RTView.UI.HTML.Logs
                        Cardano.Tracer.Handlers.RTView.UI.HTML.Main
                        Cardano.Tracer.Handlers.RTView.UI.HTML.NoNodes
                        Cardano.Tracer.Handlers.RTView.UI.HTML.Notifications

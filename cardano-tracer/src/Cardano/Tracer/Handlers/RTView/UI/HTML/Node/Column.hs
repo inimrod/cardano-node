@@ -20,7 +20,6 @@ import           Cardano.Tracer.Handlers.RTView.State.Errors
 import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.EKG
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Errors
-import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Logs
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Peers
 import           Cardano.Tracer.Handlers.RTView.UI.Img.Icons
 import           Cardano.Tracer.Handlers.RTView.UI.JS.Utils
@@ -37,7 +36,7 @@ addNodeColumn
   -> LiveViewTimers
   -> NodeId
   -> UI ()
-addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer lvTimers nodeId@(NodeId anId) = do
+addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer _lvTimers nodeId@(NodeId anId) = do
   nodeName <- liftIO $ askNodeName tracerEnv nodeId
 
   let id' = unpack anId
@@ -57,14 +56,6 @@ addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer lvTimers nod
                                   # set UI.enabled False
                                   # set text "Details"
   on UI.click peersDetailsButton . const $ fadeInModal peersTable
-
-  logsLiveView <- mkLogsLiveView lvTimers nodeId nodeName
-  logsLiveViewButton <- UI.button ## (id' <> "__node-logs-live-view-button")
-                                  #. "button is-info"
-                                  # set text "Live view"
-  on UI.click logsLiveViewButton . const $ do
-    startLiveViewTimer lvTimers nodeId
-    fadeInModal logsLiveView
 
   errorsTable <- mkErrorsTable tracerEnv nodeId nodesErrors updateErrorsTimer
   errorsDetailsButton <- UI.button ## (id' <> "__node-errors-details-button")
@@ -105,16 +96,6 @@ addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer lvTimers nod
   addNodeCell "start-time" st
   addNodeCell "uptime" ut
   addNodeCell "logs" ls
-  addNodeCell "logs-access" [ UI.div #. "field is-grouped" #+
-                                [ UI.p #. "control" #+
-                                    [ element logsLiveViewButton
-                                    ]
-                                , UI.p #. "control" #+
-                                    [ 
-                                    ]
-                                ]
-                            , element logsLiveView
-                            ]
   addNodeCell "peers" [ UI.div #. "buttons has-addons" #+
                           [ UI.button ## (id' <> "__node-peers-num")
                                       #. "button is-static"
@@ -123,14 +104,6 @@ addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer lvTimers nod
                           ]
                       , element peersTable
                       ]
-  --addNodeCell "errors" [ UI.div #. "buttons has-addons" #+
-  --                         [ UI.button ## (id' <> "__node-errors-num")
-  --                                     #. "button is-static"
-  --                                     # set text "0"
-  --                         , element errorsDetailsButton
-  --                         ]
-  --                     , element errorsTable
-  --                     ]
   addNodeCell "leadership" leadership
   addNodeCell "kes" kes
   addNodeCell "op-cert" opCert

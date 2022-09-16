@@ -1,6 +1,4 @@
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE NumericUnderscores #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -19,11 +17,14 @@ import           Graphics.UI.Threepenny.Core
 import           Cardano.Tracer.Environment
 import           Cardano.Tracer.Handlers.RTView.State.Displayed
 import           Cardano.Tracer.Handlers.RTView.State.TraceObjects
+import           Cardano.Tracer.Handlers.RTView.UI.Charts
 import           Cardano.Tracer.Handlers.RTView.UI.Img.Icons
 import           Cardano.Tracer.Handlers.RTView.UI.JS.Utils
+import           Cardano.Tracer.Handlers.RTView.UI.Types
 import           Cardano.Tracer.Handlers.RTView.UI.Utils
 import           Cardano.Tracer.Handlers.RTView.Utils
 import           Cardano.Tracer.Types
+import           Cardano.Tracer.Utils
 
 updateUIBySavedTOs
   :: TracerEnv
@@ -31,17 +32,22 @@ updateUIBySavedTOs
   -> UI ()
 updateUIBySavedTOs tracerEnv@TracerEnv{teSavedTO2} _ = do
   window <- askWindow
-  forConnectedUI_ tracerEnv $ \nodeId@(NodeId anId) ->
-    whenJustM (UI.getElementById window (T.unpack anId <> "__node-logs-live-view-tbody")) $ \el -> do
-      tosFromThisNode <- liftIO (getTraceObjects teSavedTO2 nodeId)
-      forM_ tosFromThisNode $ doAddItemRow nodeId el
+  whenJustM (UI.getElementById window "node-logs-live-view-tbody") $ \el ->
+    forConnectedUI_ tracerEnv $ \nodeId -> do
+      nodeName        <- liftIO $ askNodeName tracerEnv nodeId
+      nodeColor       <- liftIO $ getSavedColorForNode nodeName
+      tosFromThisNode <- liftIO $ getTraceObjects teSavedTO2 nodeId
+      forM_ tosFromThisNode $
+        doAddItemRow nodeId nodeName nodeColor el
 
 doAddItemRow
   :: NodeId
+  -> NodeName
+  -> Maybe Color
   -> Element
   -> (Namespace, TraceObjectInfo)
   -> UI ()
-doAddItemRow (NodeId anId) parentEl (ns, (msg, sev, ts)) = do
+doAddItemRow (NodeId anId) nodeName nodeColor parentEl (ns, (msg, sev, ts)) = do
   aRow <- mkItemRow
   void $ element parentEl #+ [aRow]
  where
@@ -51,9 +57,18 @@ doAddItemRow (NodeId anId) parentEl (ns, (msg, sev, ts)) = do
     on UI.click copyItemIcon . const $ copyTextToClipboard $
       "[" <> preparedTS ts <> "] [" <> show sev <> "] [" <> T.unpack ns <> "] [" <> T.unpack msg <> "]"
 
+    nodeNameLabel <-
+      case nodeColor of
+        Nothing -> UI.span # set text (T.unpack nodeName)
+        Just (Color code) -> UI.span # set style [("color", code)]
+                                     # set text (T.unpack nodeName)
+
     return $
       UI.tr #. (T.unpack anId <> "-node-logs-live-view-row") #+
         [ UI.td #+
+            [ element nodeNameLabel
+            ]
+        , UI.td #+
             [ UI.span # set text (preparedTS ts)
             ]
         , UI.td #+
