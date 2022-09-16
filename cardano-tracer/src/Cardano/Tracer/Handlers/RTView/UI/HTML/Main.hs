@@ -17,7 +17,6 @@ import           Cardano.Tracer.Configuration
 import           Cardano.Tracer.Environment
 import           Cardano.Tracer.Handlers.RTView.State.Displayed
 import           Cardano.Tracer.Handlers.RTView.State.EraSettings
-import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.State.Peers
 import           Cardano.Tracer.Handlers.RTView.UI.Charts
 import           Cardano.Tracer.Handlers.RTView.UI.CSS.Bulma
@@ -43,12 +42,10 @@ mkMainPage
   -> PageReloadedFlag
   -> NonEmpty LoggingParams
   -> Network
-  -> LastLiveViewItems
-  -> LiveViewTimers
   -> UI.Window
   -> UI ()
 mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
-           loggingConfig networkConfig llvItems lvTimers window = do
+           loggingConfig networkConfig window = do
   void $ return window # set UI.title pageTitle
   void $ UI.getHead window #+
     [ UI.link # set UI.rel "icon"
@@ -106,7 +103,6 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
       colors
       datasetIndices
       uiNoNodesProgressTimer
-      lvTimers
 
     liftIO $ pageWasNotReload reloadFlag
 
@@ -133,8 +129,6 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
       colors
       datasetIndices
       uiNoNodesProgressTimer
-      lvTimers
-      llvItems
 
   uiPeersTimer <- UI.timer # set UI.interval 4000
   on UI.tick uiPeersTimer . const $ do

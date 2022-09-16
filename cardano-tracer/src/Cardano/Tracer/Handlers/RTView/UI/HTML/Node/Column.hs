@@ -16,7 +16,6 @@ import           System.FilePath ((</>))
 
 import           Cardano.Tracer.Configuration
 import           Cardano.Tracer.Environment
-import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.EKG
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Peers
 import           Cardano.Tracer.Handlers.RTView.UI.Img.Icons
@@ -29,10 +28,9 @@ import           Cardano.Tracer.Utils
 addNodeColumn
   :: TracerEnv
   -> NonEmpty LoggingParams
-  -> LiveViewTimers
   -> NodeId
   -> UI ()
-addNodeColumn tracerEnv loggingConfig _lvTimers nodeId@(NodeId anId) = do
+addNodeColumn tracerEnv loggingConfig nodeId@(NodeId anId) = do
   nodeName <- liftIO $ askNodeName tracerEnv nodeId
 
   let id' = unpack anId

@@ -22,7 +22,6 @@ import           Cardano.Tracer.Handlers.RTView.SSL.Certs
 import           Cardano.Tracer.Handlers.RTView.State.Displayed
 import           Cardano.Tracer.Handlers.RTView.State.EraSettings
 import           Cardano.Tracer.Handlers.RTView.State.Last
-import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.State.TraceObjects
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Main
 import           Cardano.Tracer.Handlers.RTView.Update.EraSettings
@@ -53,8 +52,6 @@ runRTView tracerEnv =
     -- period when RTView web-page wasn't opened.
     lastResources <- initLastResources
     eraSettings   <- initErasSettings
-    llvItems      <- initLastLiveViewItems
-    lvTimers      <- initLiveViewTimers
 
     void . sequenceConcurrently $
       [ UI.startGUI (config host port certFile keyFile) $
@@ -65,8 +62,6 @@ runRTView tracerEnv =
             reloadFlag
             logging
             network
-            llvItems
-            lvTimers
       , runHistoricalUpdater  tracerEnv lastResources
       , runHistoricalBackup   tracerEnv
       , runEraSettingsUpdater tracerEnv eraSettings
