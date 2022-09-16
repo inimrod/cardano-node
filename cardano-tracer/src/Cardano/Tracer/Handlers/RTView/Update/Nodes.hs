@@ -38,7 +38,6 @@ import           Cardano.Tracer.Environment
 import           Cardano.Tracer.Handlers.Metrics.Utils
 import           Cardano.Tracer.Handlers.RTView.State.Displayed
 import           Cardano.Tracer.Handlers.RTView.State.EraSettings
-import           Cardano.Tracer.Handlers.RTView.State.Errors
 import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.UI.Charts
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Column
@@ -59,15 +58,13 @@ updateNodesUI
   -> NonEmpty LoggingParams
   -> Colors
   -> DatasetsIndices
-  -> Errors
-  -> UI.Timer
   -> UI.Timer
   -> LiveViewTimers
   -> LastLiveViewItems
   -> UI ()
 updateNodesUI tracerEnv@TracerEnv{teConnectedNodes, teAcceptedMetrics}
-              displayedElements nodesEraSettings loggingConfig colors datasetIndices
-              nodesErrors updateErrorsTimer noNodesProgressTimer lvTimers llvItems = do
+              displayedElements nodesEraSettings loggingConfig colors
+              datasetIndices noNodesProgressTimer lvTimers llvItems = do
   (connected, displayedEls) <- liftIO . atomically $ (,)
     <$> readTVar teConnectedNodes
     <*> readTVar displayedElements
@@ -81,8 +78,6 @@ updateNodesUI tracerEnv@TracerEnv{teConnectedNodes, teAcceptedMetrics}
       tracerEnv
       newlyConnected
       loggingConfig
-      nodesErrors
-      updateErrorsTimer
       lvTimers
     checkNoNodesState connected noNodesProgressTimer
     askNSetNodeInfo tracerEnv newlyConnected displayedElements
@@ -101,21 +96,14 @@ addColumnsForConnected
   :: TracerEnv
   -> Set NodeId
   -> NonEmpty LoggingParams
-  -> Errors
-  -> UI.Timer
   -> LiveViewTimers
   -> UI ()
-addColumnsForConnected tracerEnv newlyConnected loggingConfig nodesErrors updateErrorsTimer lvTimers = do
+addColumnsForConnected tracerEnv newlyConnected loggingConfig lvTimers = do
   unless (S.null newlyConnected) $ do
     window <- askWindow
     findAndShow window "main-table-container"
   forM_ newlyConnected $
-    addNodeColumn
-      tracerEnv
-      loggingConfig
-      nodesErrors
-      updateErrorsTimer
-      lvTimers
+    addNodeColumn tracerEnv loggingConfig lvTimers
 
 addDatasetsForConnected
   :: TracerEnv

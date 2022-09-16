@@ -21,13 +21,11 @@ import           Cardano.Tracer.Handlers.RTView.Notifications.Utils
 import           Cardano.Tracer.Handlers.RTView.SSL.Certs
 import           Cardano.Tracer.Handlers.RTView.State.Displayed
 import           Cardano.Tracer.Handlers.RTView.State.EraSettings
-import           Cardano.Tracer.Handlers.RTView.State.Errors
 import           Cardano.Tracer.Handlers.RTView.State.Last
 import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.State.TraceObjects
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Main
 import           Cardano.Tracer.Handlers.RTView.Update.EraSettings
-import           Cardano.Tracer.Handlers.RTView.Update.Errors
 import           Cardano.Tracer.Handlers.RTView.Update.Historical
 
 -- | RTView is a part of 'cardano-tracer' that provides an ability
@@ -55,7 +53,6 @@ runRTView tracerEnv =
     -- period when RTView web-page wasn't opened.
     lastResources <- initLastResources
     eraSettings   <- initErasSettings
-    errors        <- initErrors
     llvItems      <- initLastLiveViewItems
     lvTimers      <- initLiveViewTimers
 
@@ -68,13 +65,11 @@ runRTView tracerEnv =
             reloadFlag
             logging
             network
-            errors
             llvItems
             lvTimers
       , runHistoricalUpdater  tracerEnv lastResources
       , runHistoricalBackup   tracerEnv
       , runEraSettingsUpdater tracerEnv eraSettings
-      , runErrorsUpdater      tracerEnv errors
       ]
  where
   TracerConfig{network, logging, hasRTView} = teConfig tracerEnv

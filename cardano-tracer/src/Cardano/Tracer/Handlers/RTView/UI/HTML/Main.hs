@@ -17,7 +17,6 @@ import           Cardano.Tracer.Configuration
 import           Cardano.Tracer.Environment
 import           Cardano.Tracer.Handlers.RTView.State.Displayed
 import           Cardano.Tracer.Handlers.RTView.State.EraSettings
-import           Cardano.Tracer.Handlers.RTView.State.Errors
 import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.State.Peers
 import           Cardano.Tracer.Handlers.RTView.UI.Charts
@@ -29,7 +28,6 @@ import           Cardano.Tracer.Handlers.RTView.UI.Notifications
 import           Cardano.Tracer.Handlers.RTView.UI.Theme
 import           Cardano.Tracer.Handlers.RTView.UI.Utils
 import           Cardano.Tracer.Handlers.RTView.Update.EKG
-import           Cardano.Tracer.Handlers.RTView.Update.Errors
 import           Cardano.Tracer.Handlers.RTView.Update.KES
 import           Cardano.Tracer.Handlers.RTView.Update.Nodes
 import           Cardano.Tracer.Handlers.RTView.Update.NodeState
@@ -45,13 +43,12 @@ mkMainPage
   -> PageReloadedFlag
   -> NonEmpty LoggingParams
   -> Network
-  -> Errors
   -> LastLiveViewItems
   -> LiveViewTimers
   -> UI.Window
   -> UI ()
 mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
-           loggingConfig networkConfig nodesErrors llvItems lvTimers window = do
+           loggingConfig networkConfig llvItems lvTimers window = do
   void $ return window # set UI.title pageTitle
   void $ UI.getHead window #+
     [ UI.link # set UI.rel "icon"
@@ -99,10 +96,6 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
         UI.stop uiNoNodesProgressTimer
         findAndSet hiddenOnly window elId
 
-  uiErrorsTimer <- UI.timer # set UI.interval 3000
-  on UI.tick uiErrorsTimer . const $
-    updateNodesErrors tracerEnv nodesErrors
-
   whenM (liftIO $ readTVarIO reloadFlag) $ do
     liftIO $ cleanupDisplayedValues displayedElements
 
@@ -112,8 +105,6 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
       loggingConfig
       colors
       datasetIndices
-      nodesErrors
-      uiErrorsTimer
       uiNoNodesProgressTimer
       lvTimers
 
@@ -141,8 +132,6 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
       loggingConfig
       colors
       datasetIndices
-      nodesErrors
-      uiErrorsTimer
       uiNoNodesProgressTimer
       lvTimers
       llvItems
@@ -157,7 +146,6 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
   UI.start uiUptimeTimer
   UI.start uiNodesTimer
   UI.start uiPeersTimer
-  UI.start uiErrorsTimer
   UI.start uiEKGTimer
   UI.start uiNoNodesProgressTimer
 
@@ -168,7 +156,6 @@ mkMainPage tracerEnv displayedElements nodesEraSettings reloadFlag
     UI.stop uiUptimeTimer
     UI.stop uiPeersTimer
     UI.stop uiEKGTimer
-    UI.stop uiErrorsTimer
     UI.stop uiNoNodesProgressTimer
     liftIO $ pageWasReload reloadFlag
 

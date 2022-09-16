@@ -16,10 +16,8 @@ import           System.FilePath ((</>))
 
 import           Cardano.Tracer.Configuration
 import           Cardano.Tracer.Environment
-import           Cardano.Tracer.Handlers.RTView.State.Errors
 import           Cardano.Tracer.Handlers.RTView.State.Logs
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.EKG
-import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Errors
 import           Cardano.Tracer.Handlers.RTView.UI.HTML.Node.Peers
 import           Cardano.Tracer.Handlers.RTView.UI.Img.Icons
 import           Cardano.Tracer.Handlers.RTView.UI.JS.Utils
@@ -31,12 +29,10 @@ import           Cardano.Tracer.Utils
 addNodeColumn
   :: TracerEnv
   -> NonEmpty LoggingParams
-  -> Errors
-  -> UI.Timer
   -> LiveViewTimers
   -> NodeId
   -> UI ()
-addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer _lvTimers nodeId@(NodeId anId) = do
+addNodeColumn tracerEnv loggingConfig _lvTimers nodeId@(NodeId anId) = do
   nodeName <- liftIO $ askNodeName tracerEnv nodeId
 
   let id' = unpack anId
@@ -56,13 +52,6 @@ addNodeColumn tracerEnv loggingConfig nodesErrors updateErrorsTimer _lvTimers no
                                   # set UI.enabled False
                                   # set text "Details"
   on UI.click peersDetailsButton . const $ fadeInModal peersTable
-
-  errorsTable <- mkErrorsTable tracerEnv nodeId nodesErrors updateErrorsTimer
-  errorsDetailsButton <- UI.button ## (id' <> "__node-errors-details-button")
-                                   #. "button is-danger"
-                                   # set UI.enabled False
-                                   # set text "Details"
-  on UI.click errorsDetailsButton . const $ fadeInModal errorsTable
 
   ekgMetricsWindow <- mkEKGMetricsWindow id'
   ekgMetricsButton <- UI.button ## (id' <> "__node-ekg-metrics-button")

@@ -38,7 +38,7 @@ module Cardano.Tracer.Handlers.RTView.UI.Utils
   , setDisplayedValue
   , delete'
   , fadeInModal
-  , exportErrorsToJSONFile
+  -- , exportErrorsToJSONFile
   , shownState
   , hiddenState
   , webPageIsOpened
@@ -52,8 +52,6 @@ import           Control.Monad.Extra (whenJustM)
 import           Data.String.QQ
 import           Data.Text (Text, unpack)
 import qualified Data.Text as T
-import           Data.Time.Clock.System (getSystemTime, systemToUTCTime)
-import           Data.Time.Format (defaultTimeLocale, formatTime)
 import qualified Foreign.JavaScript as JS
 import qualified Foreign.RemotePtr as Foreign
 import qualified Graphics.UI.Threepenny as UI
@@ -62,8 +60,6 @@ import           Graphics.UI.Threepenny.JQuery (Easing (..), fadeIn, fadeOut)
 
 import           Cardano.Tracer.Environment
 import           Cardano.Tracer.Handlers.RTView.State.Displayed
-import           Cardano.Tracer.Handlers.RTView.State.Errors
-import           Cardano.Tracer.Handlers.RTView.UI.JS.Utils
 import           Cardano.Tracer.Types
 
 (##) :: UI Element -> String -> UI Element
@@ -271,6 +267,7 @@ fadeInModal modal = do
   void $ element modal #. "modal is-active"
   fadeIn modal 150 Swing $ return ()
 
+{-
 exportErrorsToJSONFile
   :: Errors
   -> NodeId
@@ -282,6 +279,7 @@ exportErrorsToJSONFile nodesErrors nodeId nodeName =
     let nowF = formatTime defaultTimeLocale "%FT%T%z" now
         fileName = "node-" <> unpack nodeName <> "-errors-" <> nowF <> ".json"
     downloadJSONFile fileName errorsAsJSON
+-}
 
 webPageIsOpened, webPageIsClosed :: TracerEnv -> UI ()
 webPageIsOpened TracerEnv{teRTViewPageOpened} = setFlag teRTViewPageOpened True
