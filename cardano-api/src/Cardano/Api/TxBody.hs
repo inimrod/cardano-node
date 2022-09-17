@@ -26,6 +26,8 @@ module Cardano.Api.TxBody (
     -- * Transaction bodies
     TxBody(.., TxBody),
     makeTransactionBody,
+    createTransactionBody,
+    createAndValidateTransactionBody,
     TxBodyContent(..),
     TxBodyError(..),
     TxBodyScriptData(..),
@@ -211,6 +213,7 @@ import qualified Cardano.Ledger.Era as Ledger
 import qualified Cardano.Ledger.Keys as Shelley
 import qualified Cardano.Ledger.SafeHash as SafeHash
 import qualified Cardano.Ledger.Shelley.Constraints as Ledger
+import qualified Cardano.Ledger.Shelley.PParams as Ledger
 
 import qualified Cardano.Ledger.Shelley.Genesis as Shelley
 import qualified Cardano.Ledger.Shelley.Metadata as Shelley
@@ -2050,7 +2053,47 @@ instance Error TxBodyError where
       "acceptable value is up to 2^32-1, " ++
       "in input " ++ show txin
 
+createTransactionBody
+  :: ShelleyBasedEra era
+  -> TxBodyContent BuildTx era
+  -> TxBody era
+createTransactionBody era txBodyContent =
+  let txins = convTxIns $ txIns txBodyContent
+      txOuts' = convTxOuts era $ txOuts txBodyContent
+      certs = convCertificates $ txCertificates txBodyContent
+      witDrwls = convWithdrawals $ txWithdrawals txBodyContent
+  in case era of
+       ShelleyBasedEraShelley ->
+        let ledgerTxBody = Shelley.TxBody
+                             txins
+                             txOuts'
+                             certs
+                             witDrwls
+                             (error "")
+                             (error "")
+                             (error "")
+                             (error "")
 
+        in ShelleyTxBody era
+              ledgerTxBody
+              (error "")
+              (error "")
+              Nothing
+              TxScriptValidityNone
+
+       ShelleyBasedEraAllegra -> error ""
+       ShelleyBasedEraMary -> error ""
+       ShelleyBasedEraAlonzo -> error ""
+       ShelleyBasedEraBabbage -> error ""
+
+createAndValidateTransactionBody
+  :: forall era.
+     IsCardanoEra era
+  => TxBodyContent BuildTx era
+  -> Either TxBodyError (TxBody era)
+createAndValidateTransactionBody = makeTransactionBody
+
+{-# DEPRECATED makeTransactionBody "Use createAndValidateTransactionBody." #-}
 makeTransactionBody :: forall era.
      IsCardanoEra era
   => TxBodyContent BuildTx era
@@ -2718,6 +2761,72 @@ getByronTxBodyContent (Annotated Byron.UnsafeTx{txInputs, txOutputs} _) =
       txScriptValidity   = TxScriptValidityNone
     }
 
+convTxIns :: TxIns BuildTx era -> Set (Shelley.TxIn StandardCrypto)
+convTxIns txIns = Set.fromList (map (toShelleyTxIn . fst) txIns)
+
+convTxOuts
+  :: forall ctx era ledgerera. ShelleyLedgerEra era ~ ledgerera
+  => ShelleyBasedEra era -> [TxOut ctx era] -> Seq.StrictSeq (Ledger.TxOut ledgerera)
+convTxOuts era txOuts = Seq.fromList $ map (toShelleyTxOutAny era) txOuts
+
+convCertificates
+  :: TxCertificates build era -> Seq.StrictSeq (Shelley.DCert StandardCrypto)
+convCertificates txCertificates =
+  case txCertificates of
+    TxCertificatesNone    -> Seq.empty
+    TxCertificates _ cs _ -> Seq.fromList (map toShelleyCertificate cs)
+
+convWithdrawals :: TxWithdrawals build era -> Shelley.Wdrl StandardCrypto
+convWithdrawals txWithdrawals =
+  case txWithdrawals of
+    TxWithdrawalsNone  -> Shelley.Wdrl Map.empty
+    TxWithdrawals _ ws -> toShelleyWithdrawal ws
+
+convTransactionFee :: ShelleyBasedEra era -> TxFee era -> Ledger.Coin
+convTransactionFee sbe txFee =
+  case txFee of
+    TxFeeImplicit TxFeesImplicitInByronEra  -> case sbe of {}
+    TxFeeExplicit _ fee -> toShelleyLovelace fee
+
+
+convValidityInterval
+  :: (TxValidityLowerBound era, TxValidityUpperBound era)
+  -> Allegra.ValidityInterval
+convValidityInterval (lowerBound, upperBound) =
+  Allegra.ValidityInterval
+    { invalidBefore = case lowerBound of
+                        TxValidityNoLowerBound   -> SNothing
+                        TxValidityLowerBound _ s -> SJust s
+    , invalidHereafter = case upperBound of
+                           TxValidityNoUpperBound _ -> SNothing
+                           TxValidityUpperBound _ s -> SJust s
+    }
+
+convTxUpdateProposal
+  :: forall era ledgerera. ShelleyLedgerEra era ~ ledgerera
+  => Ledger.Crypto ledgerera ~ StandardCrypto
+  => ShelleyBasedEra era
+  -> TxUpdateProposal era
+  -> StrictMaybe (Ledger.Update ledgerera)
+convTxUpdateProposal era txUpdateProposal =
+  case txUpdateProposal of
+    TxUpdateProposalNone -> SNothing
+    TxUpdateProposal _ p -> SJust (toLedgerUpdate era p)
+
+convMintValue :: TxMintValue build era -> Mary.Value StandardCrypto
+convMintValue txMintValue =
+  case txMintValue of
+    TxMintNone        -> mempty
+    TxMintValue _ v _ -> toMaryValue v
+
+convExtraKeyWitnesses :: TxExtraKeyWitnesses era -> Set (Shelley.KeyHash r' StandardCrypto)
+convExtraKeyWitnesses txExtraKeyWits =
+  case txExtraKeyWits of
+    TxExtraKeyWitnessesNone   -> Set.empty
+    TxExtraKeyWitnesses _ khs -> Set.fromList
+                                   [ Shelley.coerceKeyRole kh
+                                   | PaymentKeyHash kh <- khs ]
+
 makeShelleyTransactionBody
   :: ShelleyBasedEra era
   -> TxBodyContent BuildTx era
@@ -2751,23 +2860,15 @@ makeShelleyTransactionBody era@ShelleyBasedEraShelley
     return $
       ShelleyTxBody era
         (Shelley.TxBody
-          (Set.fromList (map (toShelleyTxIn . fst) txIns))
-          (Seq.fromList (map (toShelleyTxOutAny era) txOuts))
-          (case txCertificates of
-             TxCertificatesNone    -> Seq.empty
-             TxCertificates _ cs _ -> Seq.fromList (map toShelleyCertificate cs))
-          (case txWithdrawals of
-             TxWithdrawalsNone  -> Shelley.Wdrl Map.empty
-             TxWithdrawals _ ws -> toShelleyWithdrawal ws)
-          (case txFee of
-             TxFeeImplicit era'  -> case era' of {}
-             TxFeeExplicit _ fee -> toShelleyLovelace fee)
+          (convTxIns txIns)
+          (convTxOuts era txOuts)
+          (convCertificates txCertificates)
+          (convWithdrawals txWithdrawals)
+          (convTransactionFee era txFee)
           (case upperBound of
              TxValidityNoUpperBound era' -> case era' of {}
              TxValidityUpperBound _ ttl  -> ttl)
-          (case txUpdateProposal of
-             TxUpdateProposalNone -> SNothing
-             TxUpdateProposal _ p -> SJust (toLedgerUpdate era p))
+          (convTxUpdateProposal era txUpdateProposal)
           (maybeToStrictMaybe
             (Ledger.hashAuxiliaryData <$> txAuxData)))
         scripts
@@ -2826,28 +2927,13 @@ makeShelleyTransactionBody era@ShelleyBasedEraAllegra
     return $
       ShelleyTxBody era
         (Allegra.TxBody
-          (Set.fromList (map (toShelleyTxIn . fst) txIns))
+          (convTxIns txIns)
           (Seq.fromList (map (toShelleyTxOutAny era) txOuts))
-          (case txCertificates of
-             TxCertificatesNone    -> Seq.empty
-             TxCertificates _ cs _ -> Seq.fromList (map toShelleyCertificate cs))
-          (case txWithdrawals of
-             TxWithdrawalsNone  -> Shelley.Wdrl Map.empty
-             TxWithdrawals _ ws -> toShelleyWithdrawal ws)
-          (case txFee of
-             TxFeeImplicit era'  -> case era' of {}
-             TxFeeExplicit _ fee -> toShelleyLovelace fee)
-          (Allegra.ValidityInterval {
-             invalidBefore    = case lowerBound of
-                                          TxValidityNoLowerBound   -> SNothing
-                                          TxValidityLowerBound _ s -> SJust s,
-             invalidHereafter = case upperBound of
-                                          TxValidityNoUpperBound _ -> SNothing
-                                          TxValidityUpperBound _ s -> SJust s
-           })
-          (case txUpdateProposal of
-             TxUpdateProposalNone -> SNothing
-             TxUpdateProposal _ p -> SJust (toLedgerUpdate era p))
+          (convCertificates txCertificates)
+          (convWithdrawals txWithdrawals)
+          (convTransactionFee era txFee)
+          (convValidityInterval (lowerBound, upperBound))
+          (convTxUpdateProposal era txUpdateProposal)
           (maybeToStrictMaybe
             (Ledger.hashAuxiliaryData <$> txAuxData))
           mempty) -- No minting in Allegra, only Mary
@@ -2921,33 +3007,16 @@ makeShelleyTransactionBody era@ShelleyBasedEraMary
     return $
       ShelleyTxBody era
         (Allegra.TxBody
-          (Set.fromList (map (toShelleyTxIn . fst) txIns))
-          (Seq.fromList (map (toShelleyTxOutAny era) txOuts))
-          (case txCertificates of
-             TxCertificatesNone    -> Seq.empty
-             TxCertificates _ cs _ -> Seq.fromList (map toShelleyCertificate cs))
-          (case txWithdrawals of
-             TxWithdrawalsNone  -> Shelley.Wdrl Map.empty
-             TxWithdrawals _ ws -> toShelleyWithdrawal ws)
-          (case txFee of
-             TxFeeImplicit era'  -> case era' of {}
-             TxFeeExplicit _ fee -> toShelleyLovelace fee)
-          (Allegra.ValidityInterval {
-             invalidBefore    = case lowerBound of
-                                          TxValidityNoLowerBound   -> SNothing
-                                          TxValidityLowerBound _ s -> SJust s,
-             invalidHereafter = case upperBound of
-                                          TxValidityNoUpperBound _ -> SNothing
-                                          TxValidityUpperBound _ s -> SJust s
-           })
-          (case txUpdateProposal of
-             TxUpdateProposalNone -> SNothing
-             TxUpdateProposal _ p -> SJust (toLedgerUpdate era p))
+          (convTxIns txIns)
+          (Seq.fromList $ map (toShelleyTxOutAny era) txOuts)
+          (convCertificates txCertificates)
+          (convWithdrawals txWithdrawals)
+          (convTransactionFee era txFee)
+          (convValidityInterval (lowerBound, upperBound))
+          (convTxUpdateProposal era txUpdateProposal)
           (maybeToStrictMaybe
             (Ledger.hashAuxiliaryData <$> txAuxData))
-          (case txMintValue of
-             TxMintNone        -> mempty
-             TxMintValue _ v _ -> toMaryValue v))
+          (convMintValue txMintValue))
         scripts
         TxBodyNoScriptData
         txAuxData
@@ -3031,39 +3100,18 @@ makeShelleyTransactionBody era@ShelleyBasedEraAlonzo
     return $
       ShelleyTxBody era
         (Alonzo.TxBody
-          (Set.fromList (map (toShelleyTxIn . fst) txIns))
+          (convTxIns txIns)
           (case txInsCollateral of
              TxInsCollateralNone     -> Set.empty
              TxInsCollateral _ txins -> Set.fromList (map toShelleyTxIn txins))
-          (Seq.fromList (map (toShelleyTxOutAny era) txOuts))
-          (case txCertificates of
-             TxCertificatesNone    -> Seq.empty
-             TxCertificates _ cs _ -> Seq.fromList (map toShelleyCertificate cs))
-          (case txWithdrawals of
-             TxWithdrawalsNone  -> Shelley.Wdrl Map.empty
-             TxWithdrawals _ ws -> toShelleyWithdrawal ws)
-          (case txFee of
-             TxFeeImplicit era'  -> case era' of {}
-             TxFeeExplicit _ fee -> toShelleyLovelace fee)
-          (Allegra.ValidityInterval {
-             invalidBefore    = case lowerBound of
-                                          TxValidityNoLowerBound   -> SNothing
-                                          TxValidityLowerBound _ s -> SJust s,
-             invalidHereafter = case upperBound of
-                                          TxValidityNoUpperBound _ -> SNothing
-                                          TxValidityUpperBound _ s -> SJust s
-           })
-          (case txUpdateProposal of
-             TxUpdateProposalNone -> SNothing
-             TxUpdateProposal _ p -> SJust (toLedgerUpdate era p))
-          (case txExtraKeyWits of
-             TxExtraKeyWitnessesNone   -> Set.empty
-             TxExtraKeyWitnesses _ khs -> Set.fromList
-                                            [ Shelley.coerceKeyRole kh
-                                            | PaymentKeyHash kh <- khs ])
-          (case txMintValue of
-             TxMintNone        -> mempty
-             TxMintValue _ v _ -> toMaryValue v)
+          (convTxOuts era txOuts)
+          (convCertificates txCertificates)
+          (convWithdrawals txWithdrawals)
+          (convTransactionFee era txFee)
+          (convValidityInterval (lowerBound, upperBound))
+          (convTxUpdateProposal era txUpdateProposal)
+          (convExtraKeyWitnesses txExtraKeyWits)
+          (convMintValue txMintValue)
           (case txProtocolParams of
              BuildTxWith Nothing        -> SNothing
              BuildTxWith (Just pparams) ->
@@ -3197,7 +3245,7 @@ makeShelleyTransactionBody era@ShelleyBasedEraBabbage
     return $
       ShelleyTxBody era
         (Babbage.TxBody
-           { Babbage.inputs = Set.fromList $ map (toShelleyTxIn . fst) txIns
+           { Babbage.inputs = convTxIns txIns
            , Babbage.collateral =
                case txInsCollateral of
                 TxInsCollateralNone     -> Set.empty
@@ -3214,40 +3262,14 @@ makeShelleyTransactionBody era@ShelleyBasedEraBabbage
                case txTotalCollateral of
                  TxTotalCollateralNone -> SNothing
                  TxTotalCollateral _ totCollLovelace -> SJust $ toShelleyLovelace totCollLovelace
-           , Babbage.txcerts =
-               case txCertificates of
-                 TxCertificatesNone    -> Seq.empty
-                 TxCertificates _ cs _ -> Seq.fromList (map toShelleyCertificate cs)
-           , Babbage.txwdrls =
-               case txWithdrawals of
-                 TxWithdrawalsNone  -> Shelley.Wdrl Map.empty
-                 TxWithdrawals _ ws -> toShelleyWithdrawal ws
-           , Babbage.txfee =
-               case txFee of
-                 TxFeeImplicit era'  -> case era' of {}
-                 TxFeeExplicit _ fee -> toShelleyLovelace fee
-           , Babbage.txvldt =
-               Allegra.ValidityInterval {
-                 invalidBefore    = case lowerBound of
-                                              TxValidityNoLowerBound   -> SNothing
-                                              TxValidityLowerBound _ s -> SJust s,
-                 invalidHereafter = case upperBound of
-                                              TxValidityNoUpperBound _ -> SNothing
-                                              TxValidityUpperBound _ s -> SJust s}
-           , Babbage.txUpdates =
-               case txUpdateProposal of
-                 TxUpdateProposalNone -> SNothing
-                 TxUpdateProposal _ p -> SJust (toLedgerUpdate era p)
-           , Babbage.reqSignerHashes =
-               case txExtraKeyWits of
-                 TxExtraKeyWitnessesNone   -> Set.empty
-                 TxExtraKeyWitnesses _ khs -> Set.fromList
-                                                [ Shelley.coerceKeyRole kh
-                                                | PaymentKeyHash kh <- khs ]
-           , Babbage.mint =
-               case txMintValue of
-                 TxMintNone        -> mempty
-                 TxMintValue _ v _ -> toMaryValue v
+           , Babbage.txcerts = convCertificates txCertificates
+           , Babbage.txwdrls = convWithdrawals txWithdrawals
+
+           , Babbage.txfee = convTransactionFee era txFee
+           , Babbage.txvldt = convValidityInterval (lowerBound, upperBound)
+           , Babbage.txUpdates = convTxUpdateProposal era txUpdateProposal
+           , Babbage.reqSignerHashes = convExtraKeyWitnesses txExtraKeyWits
+           , Babbage.mint = convMintValue txMintValue
            , Babbage.scriptIntegrityHash =
                case txProtocolParams of
                  BuildTxWith Nothing        -> SNothing
