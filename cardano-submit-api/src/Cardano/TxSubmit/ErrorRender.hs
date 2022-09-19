@@ -74,5 +74,3 @@ renderEraMismatch EraMismatch{ledgerEraName, otherEraName} =
   "The node is running in the " <> ledgerEraName <>
   " era, but the transaction is for the " <> otherEraName <> " era."
 
-textShow :: Show a => a -> Text
-textShow = T.pack . show
