@@ -1217,9 +1217,6 @@ instance ToObject Praos.PraosEnvelopeError where
 -- Helper functions
 --------------------------------------------------------------------------------
 
-textShow :: Show a => a -> Text
-textShow = Text.pack . show
-
 showLastAppBlockNo :: WithOrigin (LastAppliedBlock crypto) -> Text
 showLastAppBlockNo wOblk =  case withOriginToMaybe wOblk of
                      Nothing -> "Genesis Block"
